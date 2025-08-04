@@ -11,6 +11,7 @@ const LOTTERY_NUMBERS = [
 // ตัวแปรสถานะ
 let isLoggedIn = false;
 let drawHistory = [];
+let usedNumbers = new Set(); // เก็บหมายเลขที่สุ่มไปแล้ว
 
 // เริ่มต้นโปรแกรม
 document.addEventListener('DOMContentLoaded', function() {
@@ -18,11 +19,14 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeApp() {
+    // โหลดข้อมูลจาก localStorage
+    loadDataFromStorage();
+    
     // ตั้งค่าเหตุการณ์ต่างๆ
     setupEventListeners();
     
     // อัปเดตข้อมูลเบื้องต้น
-    updateTotalNumbers();
+    updateStatistics();
     
     // เริ่มต้นที่หน้าล็อกอิน
     showScreen('loginScreen');
@@ -47,6 +51,47 @@ function setupEventListeners() {
             closeModal();
         }
     });
+    
+    // บันทึกข้อมูลก่อนปิดหน้าเว็บ
+    window.addEventListener('beforeunload', function() {
+        saveDataToStorage();
+    });
+}
+
+// ฟังก์ชันจัดการ localStorage
+function saveDataToStorage() {
+    const data = {
+        drawHistory: drawHistory,
+        usedNumbers: Array.from(usedNumbers),
+        lastSaved: new Date().toISOString()
+    };
+    localStorage.setItem('lotteryData', JSON.stringify(data));
+}
+
+function loadDataFromStorage() {
+    const savedData = localStorage.getItem('lotteryData');
+    if (savedData) {
+        try {
+            const data = JSON.parse(savedData);
+            drawHistory = data.drawHistory || [];
+            usedNumbers = new Set(data.usedNumbers || []);
+        } catch (error) {
+            console.log('ไม่สามารถโหลดข้อมูลเก่าได้');
+            resetAllData();
+        }
+    }
+}
+
+function clearStorage() {
+    localStorage.removeItem('lotteryData');
+}
+
+function resetAllData() {
+    drawHistory = [];
+    usedNumbers = new Set();
+    updateStatistics();
+    document.getElementById('resultContainer').innerHTML = '';
+    saveDataToStorage();
 }
 
 function showScreen(screenId) {
@@ -57,6 +102,12 @@ function showScreen(screenId) {
     
     // แสดงหน้าจอที่ต้องการ
     document.getElementById(screenId).classList.add('active');
+    
+    // อัปเดตข้อมูลสถิติเมื่อเข้าหน้าหลัก
+    if (screenId === 'mainScreen') {
+        updateStatistics();
+        restoreLastResult();
+    }
 }
 
 function checkPassword() {
@@ -87,6 +138,12 @@ function drawLottery() {
         return;
     }
     
+    // ตรวจสอบว่ามีหมายเลขเหลือไหม
+    if (usedNumbers.size >= LOTTERY_NUMBERS.length) {
+        showWarningMessage('หมายเลขสลากหมดแล้ว! กรุณารีเซ็ทเพื่อเริ่มใหม่');
+        return;
+    }
+    
     // ปิดปุ่มชั่วคราว
     const drawButton = document.getElementById('drawButton');
     drawButton.disabled = true;
@@ -96,8 +153,21 @@ function drawLottery() {
     
     // จำลองการโหลด
     setTimeout(() => {
-        // สุ่มหมายเลข
-        const selectedNumber = LOTTERY_NUMBERS[Math.floor(Math.random() * LOTTERY_NUMBERS.length)];
+        // หาหมายเลขที่ยังไม่ได้ใช้
+        const availableNumbers = LOTTERY_NUMBERS.filter(num => !usedNumbers.has(num));
+        
+        if (availableNumbers.length === 0) {
+            hideLoading();
+            drawButton.disabled = false;
+            showWarningMessage('หมายเลขสลากหมดแล้ว!');
+            return;
+        }
+        
+        // สุ่มหมายเลขจากที่เหลือ
+        const selectedNumber = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
+        
+        // เพิ่มเข้าไปในชุดที่ใช้แล้ว
+        usedNumbers.add(selectedNumber);
         
         // บันทึกประวัติ
         const drawRecord = {
@@ -107,8 +177,14 @@ function drawLottery() {
         };
         drawHistory.unshift(drawRecord);
         
+        // บันทึกลง localStorage
+        saveDataToStorage();
+        
         // แสดงผลลัพธ์
         displayResult(drawRecord);
+        
+        // อัปเดตสถิติ
+        updateStatistics();
         
         // ซ่อน loading
         hideLoading();
@@ -120,6 +196,54 @@ function drawLottery() {
         playSuccessSound();
         
     }, 2000); // รอ 2 วินาที
+}
+
+function drawNewLottery() {
+    if (!isLoggedIn) {
+        showErrorMessage('กรุณาล็อกอินก่อนใช้งาน');
+        return;
+    }
+    
+    // ปิดปุ่มชั่วคราว
+    const drawButton = document.getElementById('drawButton');
+    drawButton.disabled = true;
+    
+    // แสดง loading
+    showLoading();
+    
+    // จำลองการโหลด
+    setTimeout(() => {
+        // สุ่มหมายเลขใหม่จากทั้งหมด (ไม่สนใจว่าเคยสุ่มไปแล้วหรือไม่)
+        const selectedNumber = LOTTERY_NUMBERS[Math.floor(Math.random() * LOTTERY_NUMBERS.length)];
+        
+        // บันทึกประวัติ
+        const drawRecord = {
+            number: selectedNumber,
+            timestamp: new Date(),
+            id: Date.now(),
+            isNewDraw: true // ระบุว่าเป็นการสุ่มใหม่
+        };
+        drawHistory.unshift(drawRecord);
+        
+        // บันทึกลง localStorage
+        saveDataToStorage();
+        
+        // แสดงผลลัพธ์
+        displayResult(drawRecord);
+        
+        // อัปเดตสถิติ
+        updateStatistics();
+        
+        // ซ่อน loading
+        hideLoading();
+        
+        // เปิดปุ่มอีกครั้ง
+        drawButton.disabled = false;
+        
+        // เล่นเสียง (ถ้ามี)
+        playSuccessSound();
+        
+    }, 2000);
 }
 
 function displayResult(drawRecord) {
@@ -136,9 +260,16 @@ function displayResult(drawRecord) {
     
     const randomCongrats = congratsMessages[Math.floor(Math.random() * congratsMessages.length)];
     
+    // ตรวจสอบว่าเป็นการสุ่มใหม่หรือไม่
+    const drawTypeText = drawRecord.isNewDraw ? "🔄 สุ่มใหม่" : "🎲 สุ่มครั้งแรก";
+    
     resultContainer.innerHTML = `
         <div class="result-title">
             🎉 ผลการสุ่มสลากออมคะแนน 🎉
+        </div>
+        
+        <div class="draw-type">
+            ${drawTypeText}
         </div>
         
         <div class="result-number">
@@ -152,10 +283,47 @@ function displayResult(drawRecord) {
         <div class="timestamp">
             📅 เวลาที่สุ่ม: ${formatDateTime(drawRecord.timestamp)}
         </div>
+        
+        <div class="draw-count">
+            🎯 ครั้งที่ ${drawHistory.length} ในการสุ่ม
+        </div>
     `;
     
     // เอฟเฟกต์ปรบมือ
     createConfetti();
+}
+
+function restoreLastResult() {
+    if (drawHistory.length > 0) {
+        displayResult(drawHistory[0]);
+    }
+}
+
+function updateStatistics() {
+    // อัปเดตจำนวนหมายเลขทั้งหมด
+    document.getElementById('totalNumbers').textContent = LOTTERY_NUMBERS.length;
+    
+    // อัปเดตจำนวนที่เหลือ
+    const remainingElement = document.getElementById('remainingNumbers');
+    if (remainingElement) {
+        const remaining = LOTTERY_NUMBERS.length - usedNumbers.size;
+        remainingElement.textContent = remaining;
+        
+        // เปลี่ยนสีตามจำนวนที่เหลือ
+        if (remaining === 0) {
+            remainingElement.style.color = '#f44336';
+        } else if (remaining <= 10) {
+            remainingElement.style.color = '#ff9800';
+        } else {
+            remainingElement.style.color = '#4caf50';
+        }
+    }
+    
+    // อัปเดตจำนวนครั้งที่สุ่ม
+    const drawCountElement = document.getElementById('drawCount');
+    if (drawCountElement) {
+        drawCountElement.textContent = drawHistory.length;
+    }
 }
 
 function showAllNumbers() {
@@ -168,20 +336,44 @@ function showAllNumbers() {
     LOTTERY_NUMBERS.forEach((number, index) => {
         const numberElement = document.createElement('div');
         numberElement.className = 'number-item';
-        numberElement.textContent = number;
+        
+        // ตรวจสอบสถานะ
+        if (usedNumbers.has(number)) {
+            numberElement.classList.add('used');
+            numberElement.innerHTML = `${number} ✓`;
+            numberElement.title = 'สุ่มไปแล้ว';
+        } else {
+            numberElement.textContent = number;
+            numberElement.title = 'ยังไม่ได้สุ่ม';
+        }
         
         // เพิ่มเอฟเฟกต์หากเพิ่งสุ่มได้
         if (drawHistory.length > 0 && drawHistory[0].number === number) {
-            numberElement.style.background = 'linear-gradient(45deg, #FFEB3B, #FFC107)';
-            numberElement.style.color = '#E65100';
-            numberElement.style.fontWeight = '700';
-            numberElement.innerHTML = `${number} ⭐`;
+            numberElement.classList.add('latest');
+            if (!numberElement.innerHTML.includes('⭐')) {
+                numberElement.innerHTML += ' ⭐';
+            }
         }
         
         allNumbersContainer.appendChild(numberElement);
     });
     
     modal.style.display = 'block';
+}
+
+function resetLottery() {
+    const confirmed = confirm(
+        '⚠️ คุณต้องการรีเซ็ทการสุ่มทั้งหมดหรือไม่?\n\n' +
+        '- ข้อมูลการสุ่มทั้งหมดจะถูกลบ\n' +
+        '- หมายเลขทั้งหมดจะกลับมาใช้ได้อีกครั้ง\n' +
+        '- การกระทำนี้ไม่สามารถย้อนกลับได้'
+    );
+    
+    if (confirmed) {
+        resetAllData();
+        clearStorage();
+        showSuccessMessage('รีเซ็ทข้อมูลเรียบร้อยแล้ว! เริ่มต้นใหม่');
+    }
 }
 
 function closeModal() {
@@ -191,11 +383,6 @@ function closeModal() {
 function logout() {
     if (confirm('คุณต้องการออกจากระบบและกลับไปหน้าล็อกอินหรือไม่?')) {
         isLoggedIn = false;
-        
-        // ล้างข้อมูลผลลัพธ์
-        document.getElementById('resultContainer').innerHTML = '';
-        
-        // กลับไปหน้าล็อกอิน
         showScreen('loginScreen');
         
         // โฟกัสช่องรหัสผ่าน
@@ -224,10 +411,6 @@ function updateTime() {
     }
 }
 
-function updateTotalNumbers() {
-    document.getElementById('totalNumbers').textContent = LOTTERY_NUMBERS.length;
-}
-
 function formatDateTime(date) {
     const options = {
         year: 'numeric',
@@ -252,6 +435,10 @@ function showErrorMessage(message) {
 
 function showInfoMessage(message) {
     showMessage(message, 'info');
+}
+
+function showWarningMessage(message) {
+    showMessage(message, 'warning');
 }
 
 function showMessage(message, type) {
@@ -286,11 +473,14 @@ function showMessage(message, type) {
         case 'info':
             toast.style.background = 'linear-gradient(45deg, #2196F3, #1976D2)';
             break;
+        case 'warning':
+            toast.style.background = 'linear-gradient(45deg, #ff9800, #f57c00)';
+            break;
     }
     
     document.body.appendChild(toast);
     
-    // ลบหลัง 3 วินาที
+    // ลบหลัง 4 วินาที
     setTimeout(() => {
         toast.style.animation = 'slideOut 0.3s ease-in';
         setTimeout(() => {
@@ -298,7 +488,7 @@ function showMessage(message, type) {
                 document.body.removeChild(toast);
             }
         }, 300);
-    }, 3000);
+    }, 4000);
 }
 
 // เอฟเฟกต์ confetti
@@ -347,7 +537,6 @@ function createConfettiPiece(color) {
 
 // ฟังก์ชันเล่นเสียง (จำลอง)
 function playSuccessSound() {
-    // สามารถเพิ่มการเล่นเสียงได้ที่นี่
     console.log('🔊 เล่นเสียงแสดงความยินดี');
 }
 
