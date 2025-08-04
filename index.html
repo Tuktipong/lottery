@@ -50,24 +50,45 @@
                     🎯 กดปุ่มด้านล่างเพื่อสุ่มหมายเลขสลากออมคะแนน
                 </div>
                 
-                <button onclick="drawLottery()" class="draw-btn" id="drawButton">
-                    🎲 สุ่มสลากออมคะแนน 🎲
-                </button>
+                <!-- สถิติการสุ่ม -->
+                <div class="statistics">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalNumbers">50</div>
+                        <div class="stat-label">หมายเลขทั้งหมด</div>
+                    </div>
+                    <div class="stat-item remaining">
+                        <div class="stat-number" id="remainingNumbers">50</div>
+                        <div class="stat-label">หมายเลขที่เหลือ</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="drawCount">0</div>
+                        <div class="stat-label">จำนวนครั้งที่สุ่ม</div>
+                    </div>
+                </div>
+                
+                <!-- ปุ่มสุ่ม -->
+                <div class="draw-buttons">
+                    <button onclick="drawLottery()" class="draw-btn primary" id="drawButton">
+                        🎲 สุ่มสลาก (ไม่ซ้ำ)
+                    </button>
+                    <button onclick="drawNewLottery()" class="draw-btn secondary">
+                        🔄 สุ่มใหม่ (อาจซ้ำ)
+                    </button>
+                </div>
                 
                 <div id="resultContainer" class="result-container">
                     <!-- ผลลัพธ์จะแสดงที่นี่ -->
                 </div>
                 
-                <div class="stats">
-                    📊 มีตัวเลขทั้งหมด <span id="totalNumbers">50</span> หมายเลข
-                </div>
-                
                 <div class="button-group">
-                    <button onclick="logout()" class="btn btn-warning">
-                        🔄 ออกจากระบบ
-                    </button>
                     <button onclick="showAllNumbers()" class="btn btn-info">
                         📋 ดูหมายเลขทั้งหมด
+                    </button>
+                    <button onclick="resetLottery()" class="btn btn-danger">
+                        🔄 รีเซ็ทการสุ่ม
+                    </button>
+                    <button onclick="logout()" class="btn btn-warning">
+                        🚪 ออกจากระบบ
                     </button>
                 </div>
             </div>
@@ -80,6 +101,17 @@
             <div class="modal-header">
                 <h3>📋 หมายเลขสลากทั้งหมด</h3>
                 <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-legend">
+                <span class="legend-item">
+                    <span class="legend-color available"></span> ยังไม่ได้สุ่ม
+                </span>
+                <span class="legend-item">
+                    <span class="legend-color used"></span> สุ่มไปแล้ว ✓
+                </span>
+                <span class="legend-item">
+                    <span class="legend-color latest"></span> ล่าสุด ⭐
+                </span>
             </div>
             <div class="modal-body">
                 <div id="allNumbers" class="numbers-grid">
