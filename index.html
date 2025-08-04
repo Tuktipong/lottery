@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สลากออมคะแนน By ครูทักติพงษ์</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- หน้าล็อกอิน -->
+    <div id="loginScreen" class="screen active">
+        <div class="container">
+            <div class="header">
+                <h1>🎓 สลากออมคะแนน 🎓</h1>
+                <h2>By ครูทักติพงษ์</h2>
+            </div>
+            
+            <div class="login-box">
+                <div class="lock-icon">🔐</div>
+                <h3>กรุณาใส่รหัสผ่านเพื่อเข้าสู่ระบบ</h3>
+                
+                <div class="input-group">
+                    <input type="password" id="passwordInput" placeholder="รหัสผ่าน" maxlength="10">
+                    <button onclick="checkPassword()" class="login-btn">
+                        🚀 เข้าสู่ระบบ
+                    </button>
+                </div>
+                
+                <div class="info-text">
+                    💡 สำหรับครูและนักเรียนเท่านั้น
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- หน้าหลัก -->
+    <div id="mainScreen" class="screen">
+        <div class="container">
+            <div class="header-main">
+                <h1>🎊 สลากออมคะแนน By ครูทักติพงษ์ 🎊</h1>
+                <div class="user-info">
+                    <span>✅ เข้าสู่ระบบแล้ว</span>
+                    <span id="currentTime"></span>
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <div class="instruction">
+                    🎯 กดปุ่มด้านล่างเพื่อสุ่มหมายเลขสลากออมคะแนน
+                </div>
+                
+                <button onclick="drawLottery()" class="draw-btn" id="drawButton">
+                    🎲 สุ่มสลากออมคะแนน 🎲
+                </button>
+                
+                <div id="resultContainer" class="result-container">
+                    <!-- ผลลัพธ์จะแสดงที่นี่ -->
+                </div>
+                
+                <div class="stats">
+                    📊 มีตัวเลขทั้งหมด <span id="totalNumbers">50</span> หมายเลข
+                </div>
+                
+                <div class="button-group">
+                    <button onclick="logout()" class="btn btn-warning">
+                        🔄 ออกจากระบบ
+                    </button>
+                    <button onclick="showAllNumbers()" class="btn btn-info">
+                        📋 ดูหมายเลขทั้งหมด
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal แสดงหมายเลขทั้งหมด -->
+    <div id="numberModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📋 หมายเลขสลากทั้งหมด</h3>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="allNumbers" class="numbers-grid">
+                    <!-- หมายเลขทั้งหมดจะแสดงที่นี่ -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Animation -->
+    <div id="loadingAnimation" class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">🔄 กำลังสุ่ม...</div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
